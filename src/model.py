@@ -50,15 +50,25 @@ trans = Transaction(a,b)
 
 
 class Budget(Transaction):
+    cats = {}
+    roles = {}
     def __init__(self, balance, amount_to_give) -> None:
         super().__init__(balance, amount_to_give)
-    def record_transaction(self, amount_b4, amount_after, status):
+    def cat(self, name):
+        if name not in self.cats:
+            self.cats[name] = len(self.cats)
+        return self.cats[name]
+    def role(self, name):
+        if name not in self.roles:
+            self.roles[name] = len(self.roles)
+        return self.roles[name]
+    def record_transaction(self, amount_b4, amount_after, status, category, role_name):
         with open("../big_data.csv", "a", newline="", encoding="UTF-8") as file:
             writer = csv.writer(file)
-            writer.writerow([amount_b4, amount_after, status])
+            writer.writerow([amount_b4, amount_after, status, self.cat(category), self.role(role_name)])
             return 
     def read_the_budget(self):
-        with open("../big_data.csv", "r", encoding="UTF-8") as fiel: #very creative I know 
+        with open("../big_data.csv", "r", encoding="UTF-8") as fiel:
             content = fiel.read()
         print(content)
 

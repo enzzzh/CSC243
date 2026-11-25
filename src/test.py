@@ -35,7 +35,7 @@ restore_stdin()
 print(f"do_the_transaction returned: {result1}")
 
 if result1:
-    trans1.record_transaction(amount_b4_1, trans1.balance, "success")
+    trans1.record_transaction(amount_b4_1, trans1.balance, "success", "food", "spender")
     print("record_transaction called -> wrote to CSV")
 else:
     print("record_transaction NOT called -> nothing written")
@@ -50,7 +50,7 @@ restore_stdin()
 print(f"do_the_transaction returned: {result2}")
 
 if result2:
-    trans2.record_transaction(amount_b4_2, trans2.balance, "success")
+    trans2.record_transaction(amount_b4_2, trans2.balance, "success", "bills")
     print("record_transaction called -> wrote to CSV")
 else:
     print("record_transaction NOT called -> nothing written")
@@ -65,7 +65,37 @@ restore_stdin()
 print(f"do_the_transaction returned: {result3}")
 
 if result3:
-    trans3.record_transaction(amount_b4_3, trans3.balance, "success")
+    trans3.record_transaction(amount_b4_3, trans3.balance, "success", "food", "spender")
+    print("record_transaction called -> wrote to CSV")
+else:
+    print("record_transaction NOT called -> nothing written")
+
+print("TEST 4: success - groceries (amount_b4=50, amount_after=40 -> SAVED)")
+
+trans4 = Budget(50, 10)
+amount_b4_4 = trans4.balance
+feed_input("10\n")
+result4 = trans4.do_the_transaction()
+restore_stdin()
+print(f"do_the_transaction returned: {result4}")
+
+if result4:
+    trans4.record_transaction(amount_b4_4, trans4.balance, "success", "groceries", "groceries")
+    print("record_transaction called -> wrote to CSV")
+else:
+    print("record_transaction NOT called -> nothing written")
+
+print("TEST 5: success - entertainment (amount_b4=200, amount_after=150 -> SAVED)")
+
+trans5 = Budget(200, 50)
+amount_b4_5 = trans5.balance
+feed_input("50\n")
+result5 = trans5.do_the_transaction()
+restore_stdin()
+print(f"do_the_transaction returned: {result5}")
+
+if result5:
+    trans5.record_transaction(amount_b4_5, trans5.balance, "success", "entertainment", "groceries")
     print("record_transaction called -> wrote to CSV")
 else:
     print("record_transaction NOT called -> nothing written")
@@ -78,7 +108,3 @@ if os.path.exists(TEST_FILE):
 else:
     print("File does not exist, what have we been doing this whole time ??")
 
-print("\n" + "=" * 50) # im having brain damage reviewing everything now. I dont feel good at all
-print("EXPECTED: Only 1 data row (100, 90.0, success)")
-print("FAILED transactions should NOT appear")
-print("=" * 50)
