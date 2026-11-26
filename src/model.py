@@ -42,10 +42,8 @@ class Transaction:
         #    self.balance -=amount_to_give
 
 
-#lets keep a and b cuz idk what to plug in rn
-#TODO: when building the TUI, lets remove the a and b and put the values in the interface and not from the backend code here
+#TODO: lets keep a and b cuz idk what to plug in rn, but for future, lets make the user add all the data from the UI 
 
-#TODO: Why not add categories for each and every thing we do ? and what if we record earnings also ? like a NORMAL MONEY TRACKING APP
 trans = Transaction(a,b)
 
 
