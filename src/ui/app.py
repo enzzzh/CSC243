@@ -11,58 +11,36 @@ from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, Static, Label
 from textual.containers import Horizontal, Vertical, ScrollableContainer
 
-from data_api import load_transactions
-
-
-# ---------------------------------------------------------------------------
-# Data intermediary: barebone CSV -> UI. No hard cases, just raw rows.
-# Columns (by position): amount_b4 | amount_after | status | category | role
-# ---------------------------------------------------------------------------
-RAW_TRANSACTIONS = load_transactions()
-
-
-def _num(value, default=0.0):
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return default
-
+from data_api import snapshot
 
 def _col(row, index, default=""):
     return row[index] if index < len(row) else default
 
 
-# Simple aggregates computed straight from the CSV. Falls back to the old
+# These hold the latest snapshot; sync_state() refills them on every tick.
+RAW_TRANSACTIONS = []
 CATEGORIES = {}
-for row in RAW_TRANSACTIONS:
-    name = _col(row, 3) or "uncategorized"
-    spent = _num(_col(row, 0, 0)) - _num(_col(row, 1, 0))
-    CATEGORIES[name] = CATEGORIES.get(name, 0.0) + spent
+TOP_CATEGORY = ("None", 0.0)
+TOTAL_SPENT_TODAY = 0.0
+CONSUMER_SCALE = 0.0
+REFRESH_SECONDS = 1
 
-if not CATEGORIES:
-    CATEGORIES = {
-        "Food": 120.50,
-        "Transport": 45.00,
-        "Entertainment": 80.00,
-        "Rent": 900.00,
-        "Utilities": 120.00,
-    }
 
-TOP_CATEGORY = max(CATEGORIES.items(), key=lambda kv: kv[1]) if CATEGORIES else ("None", 0.0)
-TOTAL_SPENT_TODAY = (
-    sum(_num(_col(r, 0, 0)) - _num(_col(r, 1, 0)) for r in RAW_TRANSACTIONS)
-    or 245.75
-)
-
-# Cheapskate (0.0) <----------------------> Degenerate consumer (1.0)
-CONSUMER_SCALE = 0.45
+def sync_state():
+    global RAW_TRANSACTIONS, CATEGORIES, TOP_CATEGORY, TOTAL_SPENT_TODAY, CONSUMER_SCALE
+    data = snapshot()
+    RAW_TRANSACTIONS = data["rows"]
+    CATEGORIES = data["categories"]
+    TOP_CATEGORY = data["top"]
+    TOTAL_SPENT_TODAY = data["total"]
+    CONSUMER_SCALE = data["scale"]
 
 
 class CategoryGraph(Static): #shiny components for non technical monkeys
     def compose(self) -> ComposeResult:
         yield Label("Spending by category", id="graph-title")
 
-    def on_mount(self) -> None:
+    def show(self) -> None:
         max_amount = max(CATEGORIES.values()) if CATEGORIES else 1
         lines = []
         for name, amount in CATEGORIES.items():
@@ -73,18 +51,18 @@ class CategoryGraph(Static): #shiny components for non technical monkeys
 
 
 class TopCategory(Static): #look out 
-    def on_mount(self) -> None:
+    def show(self) -> None:
         name, amount = TOP_CATEGORY
         self.update(f"Top category: {name}  ({amount:,.2f})")
 
 
 class DailyTotal(Static):
-    def on_mount(self) -> None:
+    def show(self) -> None:
         self.update(f"Total spent today: {TOTAL_SPENT_TODAY:,.2f}")
 
 
 class ConsumerScale(Static):
-    def on_mount(self) -> None:
+    def show(self) -> None:
         pos = int(CONSUMER_SCALE * 40)
         scale = "-" * pos + "o" + "-" * (40 - pos)
         self.update(
@@ -94,7 +72,7 @@ class ConsumerScale(Static):
 
 
 class TransactionFeed(Static): #raw csv data piped straight from the "API" 
-    def on_mount(self) -> None:
+    def show(self) -> None:
         lines = [
             "(amount_b4 | amount_after | status | category | role)",
             "-" * 55,
@@ -126,6 +104,18 @@ class SpendingApp(App):
                 yield ConsumerScale()
 
         yield ScrollableContainer(TransactionFeed(), id="feed")
+
+    def on_mount(self) -> None:
+        self.sync_from_csv()
+        self.set_interval(REFRESH_SECONDS, self.sync_from_csv)
+
+    def sync_from_csv(self) -> None:
+        sync_state()
+        self.query_one(CategoryGraph).show()
+        self.query_one(TopCategory).show()
+        self.query_one(DailyTotal).show()
+        self.query_one(ConsumerScale).show()
+        self.query_one(TransactionFeed).show()
 
 
 if __name__ == "__main__":
